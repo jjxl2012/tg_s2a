@@ -169,6 +169,22 @@ func (s *DashboardService) GetGroupStatsWithFilters(ctx context.Context, startTi
 	return stats, nil
 }
 
+func (s *DashboardService) GetUserTokenStats(ctx context.Context, startTime, endTime time.Time) ([]usagestats.UserTokenStat, error) {
+	stats, err := s.usageRepo.GetUserTokenStats(ctx, startTime, endTime)
+	if err != nil {
+		return nil, fmt.Errorf("get user token stats: %w", err)
+	}
+	return stats, nil
+}
+
+func (s *DashboardService) GetUserModelBreakdown(ctx context.Context, startTime, endTime time.Time, userID int64) ([]usagestats.UserModelBreakdown, error) {
+	breakdown, err := s.usageRepo.GetUserModelBreakdown(ctx, startTime, endTime, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user model breakdown: %w", err)
+	}
+	return breakdown, nil
+}
+
 // GetGroupUsageSummary returns today's and cumulative cost for all groups.
 func (s *DashboardService) GetGroupUsageSummary(ctx context.Context, todayStart time.Time) ([]usagestats.GroupUsageSummary, error) {
 	results, err := s.usageRepo.GetAllGroupUsageSummary(ctx, todayStart)

@@ -1405,6 +1405,20 @@ export interface GroupStat {
   account_cost: number // 账号成本
 }
 
+export interface UserTokenStat {
+  user_id: number
+  email: string
+  username: string
+  requests: number
+  total_tokens: number
+}
+
+export interface UserModelBreakdown {
+  model: string
+  requests: number
+  total_tokens: number
+}
+
 export interface UserBreakdownItem {
   user_id: number
   email: string

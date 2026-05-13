@@ -2391,6 +2391,12 @@ func (r *stubUsageLogRepo) GetStatsWithFilters(ctx context.Context, filters usag
 func (r *stubUsageLogRepo) GetAllGroupUsageSummary(ctx context.Context, todayStart time.Time) ([]usagestats.GroupUsageSummary, error) {
 	return nil, errors.New("not implemented")
 }
+func (r *stubUsageLogRepo) GetUserTokenStats(ctx context.Context, startTime, endTime time.Time) ([]usagestats.UserTokenStat, error) {
+	return nil, nil
+}
+func (r *stubUsageLogRepo) GetUserModelBreakdown(ctx context.Context, startTime, endTime time.Time, userID int64) ([]usagestats.UserModelBreakdown, error) {
+	return nil, nil
+}
 
 type stubSettingRepo struct {
 	all map[string]string

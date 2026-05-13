@@ -10,11 +10,13 @@ import (
 )
 
 var (
-	dashboardTrendCache        = newSnapshotCache(30 * time.Second)
-	dashboardModelStatsCache   = newSnapshotCache(30 * time.Second)
-	dashboardGroupStatsCache   = newSnapshotCache(30 * time.Second)
-	dashboardUsersTrendCache   = newSnapshotCache(30 * time.Second)
-	dashboardAPIKeysTrendCache = newSnapshotCache(30 * time.Second)
+	dashboardTrendCache            = newSnapshotCache(30 * time.Second)
+	dashboardModelStatsCache       = newSnapshotCache(30 * time.Second)
+	dashboardGroupStatsCache       = newSnapshotCache(30 * time.Second)
+	dashboardUsersTrendCache       = newSnapshotCache(30 * time.Second)
+	dashboardAPIKeysTrendCache     = newSnapshotCache(30 * time.Second)
+	dashboardUserTokenCache     = newSnapshotCache(30 * time.Second)
+	dashboardUserModelBreakdown = newSnapshotCache(30 * time.Second)
 )
 
 type dashboardTrendCacheKey struct {
@@ -200,4 +202,46 @@ func (h *DashboardHandler) getUserUsageTrendCached(ctx context.Context, startTim
 	}
 	trend, err := snapshotPayloadAs[[]usagestats.UserUsageTrendPoint](entry.Payload)
 	return trend, hit, err
+}
+
+type dashboardUserTokenCacheKey struct {
+	StartTime string `json:"start_time"`
+	EndTime   string `json:"end_time"`
+}
+
+type dashboardUserModelBreakdownCacheKey struct {
+	StartTime string `json:"start_time"`
+	EndTime   string `json:"end_time"`
+	UserID    int64  `json:"user_id"`
+}
+
+func (h *DashboardHandler) getUserTokenStatsCached(ctx context.Context, startTime, endTime time.Time) ([]usagestats.UserTokenStat, bool, error) {
+	key := mustMarshalDashboardCacheKey(dashboardUserTokenCacheKey{
+		StartTime: startTime.UTC().Format(time.RFC3339),
+		EndTime:   endTime.UTC().Format(time.RFC3339),
+	})
+	entry, hit, err := dashboardUserTokenCache.GetOrLoad(key, func() (any, error) {
+		return h.dashboardService.GetUserTokenStats(ctx, startTime, endTime)
+	})
+	if err != nil {
+		return nil, hit, err
+	}
+	stats, err := snapshotPayloadAs[[]usagestats.UserTokenStat](entry.Payload)
+	return stats, hit, err
+}
+
+func (h *DashboardHandler) getUserModelBreakdownCached(ctx context.Context, startTime, endTime time.Time, userID int64) ([]usagestats.UserModelBreakdown, bool, error) {
+	key := mustMarshalDashboardCacheKey(dashboardUserModelBreakdownCacheKey{
+		StartTime: startTime.UTC().Format(time.RFC3339),
+		EndTime:   endTime.UTC().Format(time.RFC3339),
+		UserID:    userID,
+	})
+	entry, hit, err := dashboardUserModelBreakdown.GetOrLoad(key, func() (any, error) {
+		return h.dashboardService.GetUserModelBreakdown(ctx, startTime, endTime, userID)
+	})
+	if err != nil {
+		return nil, hit, err
+	}
+	breakdown, err := snapshotPayloadAs[[]usagestats.UserModelBreakdown](entry.Payload)
+	return breakdown, hit, err
 }

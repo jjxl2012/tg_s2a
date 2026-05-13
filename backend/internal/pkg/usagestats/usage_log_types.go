@@ -133,6 +133,22 @@ type GroupStat struct {
 	AccountCost float64 `json:"account_cost"` // 账号成本
 }
 
+// UserTokenStat represents token usage statistics for a single user
+type UserTokenStat struct {
+	UserID      int64  `json:"user_id"`
+	Email       string `json:"email"`
+	Username    string `json:"username"`
+	Requests    int64  `json:"requests"`
+	TotalTokens int64  `json:"total_tokens"`
+}
+
+// UserModelBreakdown represents token usage breakdown by model for a single user
+type UserModelBreakdown struct {
+	Model       string `json:"model"`
+	Requests    int64  `json:"requests"`
+	TotalTokens int64  `json:"total_tokens"`
+}
+
 // UserUsageTrendPoint represents user usage trend data point
 type UserUsageTrendPoint struct {
 	Date       string  `json:"date"`

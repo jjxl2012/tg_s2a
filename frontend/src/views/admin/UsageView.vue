@@ -46,6 +46,12 @@
             :filters="breakdownFilters"
           />
         </div>
+        <AccountTokenDistributionChart
+          :account-stats="accountTokenStats"
+          :loading="accountTokenLoading"
+          :start-date="startDate"
+          :end-date="endDate"
+        />
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <EndpointDistributionChart
             v-model:source="endpointDistributionSource"
@@ -146,8 +152,9 @@ import UsageCleanupDialog from '@/components/admin/usage/UsageCleanupDialog.vue'
 import UserBalanceHistoryModal from '@/components/admin/user/UserBalanceHistoryModal.vue'
 import ModelDistributionChart from '@/components/charts/ModelDistributionChart.vue'; import GroupDistributionChart from '@/components/charts/GroupDistributionChart.vue'; import TokenUsageTrend from '@/components/charts/TokenUsageTrend.vue'
 import EndpointDistributionChart from '@/components/charts/EndpointDistributionChart.vue'
+import AccountTokenDistributionChart from '@/components/charts/AccountTokenDistributionChart.vue'
 import Icon from '@/components/icons/Icon.vue'
-import type { AdminUsageLog, TrendDataPoint, ModelStat, GroupStat, EndpointStat, AdminUser } from '@/types'; import type { AdminUsageStatsResponse, AdminUsageQueryParams } from '@/api/admin/usage'
+import type { AdminUsageLog, TrendDataPoint, ModelStat, GroupStat, EndpointStat, AdminUser, UserTokenStat } from '@/types'; import type { AdminUsageStatsResponse, AdminUsageQueryParams } from '@/api/admin/usage'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -156,7 +163,7 @@ type EndpointSource = 'inbound' | 'upstream' | 'path'
 type ModelDistributionSource = 'requested' | 'upstream' | 'mapping'
 const route = useRoute()
 const usageStats = ref<AdminUsageStatsResponse | null>(null); const usageLogs = ref<AdminUsageLog[]>([]); const loading = ref(false); const exporting = ref(false)
-const trendData = ref<TrendDataPoint[]>([]); const requestedModelStats = ref<ModelStat[]>([]); const upstreamModelStats = ref<ModelStat[]>([]); const mappingModelStats = ref<ModelStat[]>([]); const groupStats = ref<GroupStat[]>([]); const chartsLoading = ref(false); const modelStatsLoading = ref(false); const granularity = ref<'day' | 'hour'>('hour')
+const trendData = ref<TrendDataPoint[]>([]); const requestedModelStats = ref<ModelStat[]>([]); const upstreamModelStats = ref<ModelStat[]>([]); const mappingModelStats = ref<ModelStat[]>([]); const groupStats = ref<GroupStat[]>([]); const accountTokenStats = ref<UserTokenStat[]>([]); const accountTokenLoading = ref(false); const chartsLoading = ref(false); const modelStatsLoading = ref(false); const granularity = ref<'day' | 'hour'>('hour')
 const modelDistributionMetric = ref<DistributionMetric>('tokens')
 const modelDistributionSource = ref<ModelDistributionSource>('requested')
 const loadedModelSources = reactive<Record<ModelDistributionSource, boolean>>({
@@ -419,6 +426,18 @@ const loadChartData = async () => {
     groupStats.value = snapshot.groups || []
   } catch (error) { console.error('Failed to load chart data:', error) } finally { if (seq === chartReqSeq) chartsLoading.value = false }
 }
+const loadAccountTokenStats = async () => {
+  accountTokenLoading.value = true
+  try {
+    const { getUserTokenStats } = await import('@/api/admin/dashboard')
+    const res = await getUserTokenStats({
+      start_date: filters.value.start_date || startDate.value,
+      end_date: filters.value.end_date || endDate.value,
+    })
+    accountTokenStats.value = res.users || []
+  } catch (error) { console.error('Failed to load user token stats:', error) } finally { accountTokenLoading.value = false }
+}
+
 const applyFilters = () => {
   pagination.page = 1
   resetModelStatsCache()
@@ -426,6 +445,7 @@ const applyFilters = () => {
   loadStats()
   loadModelStats(modelDistributionSource.value, true)
   loadChartData()
+  loadAccountTokenStats()
 }
 const refreshData = () => {
   resetModelStatsCache()
@@ -433,6 +453,7 @@ const refreshData = () => {
   loadStats()
   loadModelStats(modelDistributionSource.value, true)
   loadChartData()
+  loadAccountTokenStats()
 }
 const resetFilters = () => {
   const range = getLast24HoursRangeDates()
@@ -602,6 +623,7 @@ onMounted(() => {
   loadModelStats(modelDistributionSource.value, true)
   window.setTimeout(() => {
     void loadChartData()
+    void loadAccountTokenStats()
   }, 120)
   loadSavedColumns()
   document.addEventListener('click', handleColumnClickOutside)

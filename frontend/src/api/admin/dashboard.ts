@@ -9,6 +9,8 @@ import type {
   TrendDataPoint,
   ModelStat,
   GroupStat,
+  UserTokenStat,
+  UserModelBreakdown,
   ApiKeyUsageTrendPoint,
   UserUsageTrendPoint,
   UserSpendingRankingResponse,
@@ -315,12 +317,47 @@ export async function getBatchApiKeysUsage(
   return data
 }
 
+export interface UserTokenStatsParams {
+  start_date?: string
+  end_date?: string
+}
+
+export interface UserTokenStatsResponse {
+  users: UserTokenStat[]
+  start_date: string
+  end_date: string
+}
+
+export interface UserModelBreakdownParams {
+  start_date?: string
+  end_date?: string
+  user_id: number
+}
+
+export interface UserModelBreakdownResponse {
+  breakdown: UserModelBreakdown[]
+  start_date: string
+  end_date: string
+}
+
+export async function getUserTokenStats(params?: UserTokenStatsParams): Promise<UserTokenStatsResponse> {
+  const { data } = await apiClient.get<UserTokenStatsResponse>('/admin/dashboard/users-token', { params })
+  return data
+}
+
+export async function getUserModelBreakdown(params: UserModelBreakdownParams): Promise<UserModelBreakdownResponse> {
+  const { data } = await apiClient.get<UserModelBreakdownResponse>('/admin/dashboard/user-model-breakdown', { params })
+  return data
+}
+
 export const dashboardAPI = {
   getStats,
   getRealtimeMetrics,
   getUsageTrend,
   getModelStats,
   getGroupStats,
+  getUserTokenStats,
+  getUserModelBreakdown,
   getSnapshotV2,
   getApiKeyUsageTrend,
   getUserUsageTrend,

@@ -4392,3 +4392,81 @@ func setToSlice(set map[int64]struct{}) []int64 {
 	}
 	return out
 }
+
+// GetUserTokenStats returns per-user token usage statistics for the given time range.
+func (r *usageLogRepository) GetUserTokenStats(ctx context.Context, startTime, endTime time.Time) (results []usagestats.UserTokenStat, err error) {
+	query := `
+		SELECT
+			COALESCE(ul.user_id, 0) as user_id,
+			COALESCE(u.email, '') as email,
+			COALESCE(u.username, '') as username,
+			COUNT(*) as requests,
+			COALESCE(SUM(ul.input_tokens + ul.output_tokens + ul.cache_creation_tokens + ul.cache_read_tokens), 0) as total_tokens
+		FROM usage_logs ul
+		LEFT JOIN users u ON u.id = ul.user_id
+		WHERE ul.created_at >= $1 AND ul.created_at < $2
+		GROUP BY ul.user_id, u.email, u.username
+		ORDER BY total_tokens DESC
+	`
+	rows, err := r.sql.QueryContext(ctx, query, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			err = closeErr
+			results = nil
+		}
+	}()
+
+	results = make([]usagestats.UserTokenStat, 0)
+	for rows.Next() {
+		var row usagestats.UserTokenStat
+		if err := rows.Scan(&row.UserID, &row.Email, &row.Username, &row.Requests, &row.TotalTokens); err != nil {
+			return nil, err
+		}
+		results = append(results, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+// GetUserModelBreakdown returns per-model token breakdown for a specific user and time range.
+func (r *usageLogRepository) GetUserModelBreakdown(ctx context.Context, startTime, endTime time.Time, userID int64) (results []usagestats.UserModelBreakdown, err error) {
+	query := `
+		SELECT
+			COALESCE(ul.model, '') as model,
+			COUNT(*) as requests,
+			COALESCE(SUM(ul.input_tokens + ul.output_tokens + ul.cache_creation_tokens + ul.cache_read_tokens), 0) as total_tokens
+		FROM usage_logs ul
+		WHERE ul.created_at >= $1 AND ul.created_at < $2
+		  AND ul.user_id = $3
+		GROUP BY ul.model
+		ORDER BY total_tokens DESC
+	`
+	rows, err := r.sql.QueryContext(ctx, query, startTime, endTime, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			err = closeErr
+			results = nil
+		}
+	}()
+
+	results = make([]usagestats.UserModelBreakdown, 0)
+	for rows.Next() {
+		var row usagestats.UserModelBreakdown
+		if err := rows.Scan(&row.Model, &row.Requests, &row.TotalTokens); err != nil {
+			return nil, err
+		}
+		results = append(results, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return results, nil
+}

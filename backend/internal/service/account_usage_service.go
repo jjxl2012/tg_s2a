@@ -57,6 +57,10 @@ type UsageLogRepository interface {
 	GetBatchUserUsageStats(ctx context.Context, userIDs []int64, startTime, endTime time.Time) (map[int64]*usagestats.BatchUserUsageStats, error)
 	GetBatchAPIKeyUsageStats(ctx context.Context, apiKeyIDs []int64, startTime, endTime time.Time) (map[int64]*usagestats.BatchAPIKeyUsageStats, error)
 
+	// User token distribution
+	GetUserTokenStats(ctx context.Context, startTime, endTime time.Time) ([]usagestats.UserTokenStat, error)
+	GetUserModelBreakdown(ctx context.Context, startTime, endTime time.Time, userID int64) ([]usagestats.UserModelBreakdown, error)
+
 	// User dashboard stats
 	GetUserDashboardStats(ctx context.Context, userID int64) (*usagestats.UserDashboardStats, error)
 	GetAPIKeyDashboardStats(ctx context.Context, apiKeyID int64) (*usagestats.UserDashboardStats, error)

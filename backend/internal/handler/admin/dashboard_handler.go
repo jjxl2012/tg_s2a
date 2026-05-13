@@ -416,6 +416,57 @@ func (h *DashboardHandler) GetGroupStats(c *gin.Context) {
 	})
 }
 
+// GetUserTokenStats handles getting per-user token usage statistics
+// GET /api/v1/admin/dashboard/users-token
+// Query params: start_date, end_date (YYYY-MM-DD)
+func (h *DashboardHandler) GetUserTokenStats(c *gin.Context) {
+	startTime, endTime := parseTimeRange(c)
+
+	stats, hit, err := h.getUserTokenStatsCached(c.Request.Context(), startTime, endTime)
+	if err != nil {
+		response.Error(c, 500, "Failed to get user token statistics")
+		return
+	}
+	c.Header("X-Snapshot-Cache", cacheStatusValue(hit))
+
+	response.Success(c, gin.H{
+		"users":      stats,
+		"start_date": startTime.Format("2006-01-02"),
+		"end_date":   endTime.Add(-24 * time.Hour).Format("2006-01-02"),
+	})
+}
+
+// GetUserModelBreakdown handles getting per-model token breakdown for a specific user
+// GET /api/v1/admin/dashboard/user-model-breakdown
+// Query params: start_date, end_date (YYYY-MM-DD), user_id (required)
+func (h *DashboardHandler) GetUserModelBreakdown(c *gin.Context) {
+	startTime, endTime := parseTimeRange(c)
+
+	userIDStr := c.Query("user_id")
+	if userIDStr == "" {
+		response.BadRequest(c, "user_id is required")
+		return
+	}
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil || userID <= 0 {
+		response.BadRequest(c, "Invalid user_id")
+		return
+	}
+
+	breakdown, hit, err := h.getUserModelBreakdownCached(c.Request.Context(), startTime, endTime, userID)
+	if err != nil {
+		response.Error(c, 500, "Failed to get user model breakdown")
+		return
+	}
+	c.Header("X-Snapshot-Cache", cacheStatusValue(hit))
+
+	response.Success(c, gin.H{
+		"breakdown":  breakdown,
+		"start_date": startTime.Format("2006-01-02"),
+		"end_date":   endTime.Add(-24 * time.Hour).Format("2006-01-02"),
+	})
+}
+
 // GetAPIKeyUsageTrend handles getting API key usage trend data
 // GET /api/v1/admin/dashboard/api-keys-trend
 // Query params: start_date, end_date (YYYY-MM-DD), granularity (day/hour), limit (default 5)
